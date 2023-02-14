@@ -12,17 +12,18 @@ public class StreamingAvatar : OvrAvatarEntity
     PhotonView view;
     // Start is called before the first frame update
 
+    public bool startBool;
+
+    public GameObject mainCam;
+
+    WaitForSeconds waitTime= new WaitForSeconds(.08f);
+
+    public byte[] avatarBytes;
+
     protected override void Awake()
     {
         StartLoadingAvatar();
         base.Awake();
-    }
-
-    public void StartAvatar(OculusStuff ncon)
-    {
-            networkCon = ncon;
-            _userId = networkCon._userId;
-            StartCoroutine(LoadAvatarWithId());
     }
 
     public void StartLoadingAvatar()
@@ -44,7 +45,11 @@ public class StreamingAvatar : OvrAvatarEntity
         {
                 SetIsLocal(false);
                 _creationInfo.features = Oculus.Avatar2.CAPI.ovrAvatar2EntityFeatures.Preset_Remote;
+                mainCam.SetActive(false);
         }
+
+        SetBodyTracking(FindObjectOfType<SampleInputManager>());
+        SetLipSync(FindObjectOfType<OvrAvatarLipSyncContext>());
 
         StartCoroutine(LoadAvatarWithId());
     }
@@ -55,4 +60,30 @@ public class StreamingAvatar : OvrAvatarEntity
             while (!hasAvatarRequest.IsCompleted) { yield return null; }
             LoadUser();
     }
+
+    public void AvatarCreated()
+    {
+        if (view.IsMine)
+        {
+            StartCoroutine(StreamAvatarData());
+        }
+    }
+    
+    IEnumerator StreamAvatarData()
+    {
+        avatarBytes = RecordStreamData(activeStreamLod);
+        view.RPC(nameof(RPC_PlayAvatarData), RpcTarget.Others, avatarBytes);
+        yield return waitTime;
+        StartCoroutine(StreamAvatarData());
+
+    }
+
+    [PunRPC]
+    public void RPC_PlayAvatarData(byte[] aBytes)
+    {
+        avatarBytes = aBytes;
+
+        ApplyStreamData(avatarBytes);
+    }
+
 }

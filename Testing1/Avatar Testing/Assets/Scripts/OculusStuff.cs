@@ -6,8 +6,6 @@ using Oculus.Avatar2;
 using System;
 using Photon.Pun;
 using Photon.Realtime;
-using CAPI = Oculus.Avatar2.CAPI;
-using UnityEditor;
 
 public class OculusStuff : MonoBehaviourPunCallbacks
 {
